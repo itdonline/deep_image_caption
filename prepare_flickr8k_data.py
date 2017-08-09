@@ -3,6 +3,8 @@ from __future__ import print_function, division
 import os
 from os.path import join as pj
 import argparse
+from collections import OrderedDict
+import json
 
 import numpy as np
 import pandas as pd
@@ -10,6 +12,7 @@ from PIL import Image
 from sklearn.model_selection import train_test_split
 import h5py
 from tqdm import tqdm
+from keras.preprocessing.sequence import pad_sequences
 
 from models import build_image_encoder, preprocess_input
 
@@ -35,6 +38,53 @@ def preprocess_caption(caption):
     caption = caption.lower()
 
     return caption
+
+
+def create_vocabulary(captions):
+    words = []
+    for caption in captions.flatten():
+        words.extend(caption.split())
+
+    unique_words, word_counts = np.unique(sorted(words), return_counts=True)
+    vocabulary = OrderedDict((word, i) for i, word in enumerate(unique_words))
+
+    return vocabulary
+
+def get_max_caption_length(captions):
+    max_caption_length = 0
+    for caption in captions.flatten():
+        caption_splitted = caption.split()
+        if len(caption_splitted) > max_caption_length:
+            max_caption_length = len(caption_splitted)
+    return max_caption_length
+
+
+def label_encode_caption(caption, vocabulary):
+    label_encoded_caption = []
+    for word in caption.split():
+        label_encoded_caption.append(vocabulary[word])
+
+    return label_encoded_caption
+
+
+def preprocess_captions(captions):
+    vocabulary = create_vocabulary(captions)
+    max_caption_length = get_max_caption_length(captions)
+
+    preprocessed_captions = []
+    for image_captions in captions:
+        preprocessed_image_captions = []
+        for caption in image_captions:
+            caption = label_encode_caption(caption, vocabulary)
+            preprocessed_image_captions.append(caption)
+
+        preprocessed_image_captions = pad_sequences(
+            preprocessed_image_captions,
+            maxlen=max_caption_length, padding='post', value=vocabulary[b'<e>']
+        )
+        preprocessed_captions.append(preprocessed_image_captions)
+
+    return np.asarray(preprocessed_captions), vocabulary
 
 
 # Arguments
@@ -93,12 +143,15 @@ if __name__ == '__main__':
     assert np.array_equal(np.asarray(captions_df['image_name'].unique(), dtype='bytes'), image_names)
 
     captions = []
-    for image_name, g in captions_df.groupby('image_name'):
-        image_captions = g['caption'].values
+    for image_name, group in captions_df.groupby('image_name'):
+        image_captions = group['caption'].values
         image_captions = list(map(preprocess_caption, image_captions))
         captions.append(image_captions)
 
     captions = np.asarray(captions, dtype='bytes')
+
+    print('Preprocessing captions')
+    preprocessed_captions, vocabulary = preprocess_captions(captions)
 
     print('Splitting data into train/val ...')
     train_indexes, val_indexes = train_test_split(
@@ -116,3 +169,8 @@ if __name__ == '__main__':
 
             fout['image_names'] = image_names[indexes]
             fout['captions'] = captions[indexes]
+            fout['preprocessed_captions'] = preprocess_captions[indexes]
+
+    print('Saving vocabulary on disk ...')
+    with open(pj(args.prepared_dataset_dir, 'vocabulary'), 'w') as fout:
+        json.dump(vocabulary, fout)
