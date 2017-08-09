@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     print('Loading images ...')
     image_paths = list_dir_with_full_paths(args.images_dir)
-    image_names = np.asarray(list(map(os.path.basename, image_paths)), dtype='object')
+    image_names = np.asarray(list(map(os.path.basename, image_paths)), dtype='bytes')
 
     images = []
     for image_path in tqdm(image_paths):
@@ -88,7 +88,7 @@ if __name__ == '__main__':
         image_captions = list(map(preprocess_caption, image_captions))
         captions.append(image_captions)
 
-    captions = np.asarray(captions, dtype='object')
+    captions = np.asarray(captions, dtype='bytes')
 
     print('Splitting data into train/val ...')
     train_indexes, val_indexes = train_test_split(
@@ -98,9 +98,8 @@ if __name__ == '__main__':
 
     print('Save datasets on disk ...')
     for indexes, name in [(train_indexes, 'train'), (val_indexes, 'val')]:
-        dataset_f = h5py.File(pj(args.prepared_dataset_dir, 'flickr8k_{}.h5'.format(name)), 'w')
-
-        dataset_f['images'] = images[indexes]
-        dataset_f['image_features'] = image_features[indexes]
-        dataset_f['image_names'] = image_names[indexes]
-        dataset_f['image_captions'] = captions[indexes]
+        with h5py.File(pj(args.prepared_dataset_dir, 'flickr8k_{}.h5'.format(name)), 'w') as fout:
+            fout['images'] = images[indexes]
+            fout['image_features'] = image_features[indexes]
+            fout['image_names'] = image_names[indexes]
+            fout['captions'] = captions[indexes]
