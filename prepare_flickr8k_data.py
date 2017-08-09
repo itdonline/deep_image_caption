@@ -54,11 +54,14 @@ parser.add_argument('--captions-path', type=str,
                     help='path where file with captions is stored')
 parser.add_argument('--val-ratio', default=0.05, type=float,
                     help='ratio of validation dataset. 0 if not splitting is not needed')
+parser.add_argument('--extract-image-features', default=1, type=int,
+                    help='if 1 then extract images\' features')
 
 args = parser.parse_args()
 
 if __name__ == '__main__':
-    image_encoder = build_image_encoder(args.image_height, args.image_width, args.n_channels)
+    if args.extract_image_features:
+        image_encoder = build_image_encoder(args.image_height, args.image_width, args.n_channels)
 
     print('Loading images ...')
     image_paths = list_dir_with_full_paths(args.images_dir)
@@ -75,12 +78,19 @@ if __name__ == '__main__':
 
     images = np.asarray(images)
 
-    print('Extracting images\' features ...')
-    image_features = image_encoder.predict(preprocess_input(np.asarray(images, dtype='float')))
+    if args.extract_image_features:
+        print('Extracting images\' features ...')
+        image_features = image_encoder.predict(preprocess_input(np.asarray(images, dtype='float')))
 
     print('Loading captions ...')
     captions_df = pd.read_table(args.captions_path, names=['image_name', 'caption'])
     captions_df['image_name'] = captions_df['image_name'].apply(lambda x: x[:-2])
+
+    # wipe out incorrect names
+    captions_df = captions_df[captions_df['image_name'].str.contains('.jpg$')]
+
+    # check order
+    assert np.array_equal(np.asarray(captions_df['image_name'].unique(), dtype='bytes'), image_names)
 
     captions = []
     for image_name, g in captions_df.groupby('image_name'):
@@ -96,10 +106,13 @@ if __name__ == '__main__':
         test_size=args.val_ratio, random_state=0
     )
 
-    print('Save datasets on disk ...')
+    print('Saving datasets on disk ...')
     for indexes, name in [(train_indexes, 'train'), (val_indexes, 'val')]:
         with h5py.File(pj(args.prepared_dataset_dir, 'flickr8k_{}.h5'.format(name)), 'w') as fout:
             fout['images'] = images[indexes]
-            fout['image_features'] = image_features[indexes]
+
+            if args.extract_image_features:
+                fout['image_features'] = image_features[indexes]
+
             fout['image_names'] = image_names[indexes]
             fout['captions'] = captions[indexes]
