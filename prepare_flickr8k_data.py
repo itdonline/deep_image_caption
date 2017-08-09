@@ -2,15 +2,16 @@ from __future__ import print_function, division
 
 import os
 from os.path import join as pj
+import itertools
 import argparse
 from collections import OrderedDict
 import json
+import pickle
 
 import numpy as np
 import pandas as pd
 from PIL import Image
 from sklearn.model_selection import train_test_split
-import h5py
 from tqdm import tqdm
 from keras.preprocessing.sequence import pad_sequences
 
@@ -42,7 +43,7 @@ def preprocess_caption(caption):
 
 def create_vocabulary(captions):
     words = []
-    for caption in captions.flatten():
+    for caption in itertools.chain.from_iterable(captions):
         words.extend(caption.split())
 
     unique_words, word_counts = np.unique(sorted(words), return_counts=True)
@@ -52,7 +53,7 @@ def create_vocabulary(captions):
 
 def get_max_caption_length(captions):
     max_caption_length = 0
-    for caption in captions.flatten():
+    for caption in itertools.chain.from_iterable(captions):
         caption_splitted = caption.split()
         if len(caption_splitted) > max_caption_length:
             max_caption_length = len(caption_splitted)
@@ -80,11 +81,13 @@ def preprocess_captions(captions):
 
         preprocessed_image_captions = pad_sequences(
             preprocessed_image_captions,
-            maxlen=max_caption_length, padding='post', value=vocabulary[b'<e>']
+            maxlen=max_caption_length, padding='post', value=vocabulary['<e>']
         )
         preprocessed_captions.append(preprocessed_image_captions)
+ 
+    preprocessed_captions = np.asarray(preprocessed_captions)
 
-    return np.asarray(preprocessed_captions), vocabulary
+    return preprocessed_captions, vocabulary
 
 
 # Arguments
@@ -115,7 +118,7 @@ if __name__ == '__main__':
 
     print('Loading images ...')
     image_paths = list_dir_with_full_paths(args.images_dir)
-    image_names = np.asarray(list(map(os.path.basename, image_paths)), dtype='bytes')
+    image_names = list(map(os.path.basename, image_paths))
 
     images = []
     for image_path in tqdm(image_paths):
@@ -139,16 +142,11 @@ if __name__ == '__main__':
     # wipe out incorrect names
     captions_df = captions_df[captions_df['image_name'].str.contains('.jpg$')]
 
-    # check order
-    assert np.array_equal(np.asarray(captions_df['image_name'].unique(), dtype='bytes'), image_names)
-
     captions = []
     for image_name, group in captions_df.groupby('image_name'):
         image_captions = group['caption'].values
         image_captions = list(map(preprocess_caption, image_captions))
         captions.append(image_captions)
-
-    captions = np.asarray(captions, dtype='bytes')
 
     print('Preprocessing captions')
     preprocessed_captions, vocabulary = preprocess_captions(captions)
@@ -161,16 +159,16 @@ if __name__ == '__main__':
 
     print('Saving datasets on disk ...')
     for indexes, name in [(train_indexes, 'train'), (val_indexes, 'val')]:
-        with h5py.File(pj(args.prepared_dataset_dir, 'flickr8k_{}.h5'.format(name)), 'w') as fout:
-            fout['images'] = images[indexes]
+        dataset = dict()
+        dataset['images'] = images[indexes]
 
-            if args.extract_image_features:
-                fout['image_features'] = image_features[indexes]
+        if args.extract_image_features:
+            dataset['image_features'] = image_features[indexes]
 
-            fout['image_names'] = image_names[indexes]
-            fout['captions'] = captions[indexes]
-            fout['preprocessed_captions'] = preprocess_captions[indexes]
+        dataset['image_names'] = [image_names[i] for i in indexes]
+        dataset['captions'] = [captions[i] for i in indexes]
+        dataset['preprocessed_captions'] = preprocessed_captions[indexes]
+        dataset['vocabulary'] = vocabulary
 
-    print('Saving vocabulary on disk ...')
-    with open(pj(args.prepared_dataset_dir, 'vocabulary'), 'w') as fout:
-        json.dump(vocabulary, fout)
+        with open(pj(args.prepared_dataset_dir, 'flickr8k_{}.pkl'.format(name)), 'wb') as fout:
+            pickle.dump(dataset, fout)
