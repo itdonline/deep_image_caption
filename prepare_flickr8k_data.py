@@ -72,8 +72,6 @@ def preprocess_captions(captions):
             encoded_image_captions.append(caption)
 
         encoded_captions.append(encoded_image_captions)
- 
-    encoded_captions = np.asarray(encoded_captions)
 
     return encoded_captions, vocabulary
 
@@ -155,7 +153,7 @@ if __name__ == '__main__':
 
         dataset['image_names'] = [image_names[i] for i in indexes]
         dataset['captions'] = [captions[i] for i in indexes]
-        dataset['encoded_captions'] = encoded_captions[indexes]
+        dataset['encoded_captions'] = [encoded_captions[i] for i in indexes]
         dataset['vocabulary'] = vocabulary
 
         with open(pj(args.prepared_dataset_dir, 'flickr8k_{}.pkl'.format(name)), 'wb') as fout:
