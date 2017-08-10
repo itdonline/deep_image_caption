@@ -9,7 +9,7 @@ from keras.preprocessing.sequence import pad_sequences
 
 
 class DataManager(object):
-    def __init__(self, dataset_path):
+    def __init__(self, dataset_path, caption_length=None):
         with open(dataset_path, 'rb') as fin:
             dataset = pickle.load(fin)
 
@@ -18,7 +18,10 @@ class DataManager(object):
         self.vocabulary = dataset['vocabulary']
         self.inversed_vocabulary = dict((v, k) for k, v in self.vocabulary.items())
 
-        self.max_caption_length = max(map(len, self.encoded_captions))
+        if caption_length is None:
+            self.caption_length = max(map(len, self.encoded_captions))
+        else:
+            self.caption_length = caption_length
 
         self.n_samples = sum(map(len, self.encoded_captions))  # useful for determining steps per epoch
 
@@ -53,7 +56,7 @@ class DataManager(object):
         images = np.asanyarray(images)
         captions = pad_sequences(
             captions,
-            maxlen=self.max_caption_length, padding='post',
+            maxlen=self.caption_length, padding='post',
             value=self.vocabulary['<p>']
         )
         next_words = np.asarray(next_words)
