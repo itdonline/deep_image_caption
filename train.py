@@ -63,8 +63,8 @@ if __name__ == '__main__':
     # train
     caption_model.fit_generator(
         dm_train.flow(batch_size=args.batch_size, shuffle=True),
-        steps_per_epoch=dm_train.n_samples // args.batch_size, epochs=args.epochs,
+        steps_per_epoch=dm_train.n_samples // args.batch_size // 10, epochs=args.epochs,
         validation_data=dm_val.flow(batch_size=args.batch_size, shuffle=False),
-        validation_steps=dm_val.n_samples // args.batch_size,
+        validation_steps=dm_val.n_samples // args.batch_size // 10,
         callbacks=callbacks, verbose=1
     )

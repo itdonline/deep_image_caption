@@ -16,7 +16,7 @@ class DataManager(object):
         self.images = dataset['images']
         self.image_height, self.image_width, self.n_channels = self.images.shape[1:]
 
-        self.encoded_captions = dataset['encoded_captions'][:, 0]  # TODO TRAIN ON ALL CAPTURES
+        self.encoded_captions = np.array([x[0] for x in dataset['encoded_captions']])  # TODO TRAIN ON ALL CAPTURES
         self.vocabulary = dataset['vocabulary']
         self.inversed_vocabulary = dict((v, k) for k, v in self.vocabulary.items())
 
