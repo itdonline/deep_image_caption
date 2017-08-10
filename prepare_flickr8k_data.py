@@ -51,14 +51,6 @@ def create_vocabulary(captions):
 
     return vocabulary
 
-def get_max_caption_length(captions):
-    max_caption_length = 0
-    for caption in itertools.chain.from_iterable(captions):
-        caption_splitted = caption.split()
-        if len(caption_splitted) > max_caption_length:
-            max_caption_length = len(caption_splitted)
-    return max_caption_length
-
 
 def label_encode_caption(caption, vocabulary):
     label_encoded_caption = []
@@ -70,24 +62,20 @@ def label_encode_caption(caption, vocabulary):
 
 def preprocess_captions(captions):
     vocabulary = create_vocabulary(captions)
-    max_caption_length = get_max_caption_length(captions)
+    vocabulary['<p>'] = -1  # padding symbol
 
-    preprocessed_captions = []
+    encoded_captions = []
     for image_captions in captions:
-        preprocessed_image_captions = []
+        encoded_image_captions = []
         for caption in image_captions:
             caption = label_encode_caption(caption, vocabulary)
-            preprocessed_image_captions.append(caption)
+            encoded_image_captions.append(caption)
 
-        preprocessed_image_captions = pad_sequences(
-            preprocessed_image_captions,
-            maxlen=max_caption_length, padding='post', value=vocabulary['<e>']
-        )
-        preprocessed_captions.append(preprocessed_image_captions)
+        encoded_captions.append(encoded_image_captions)
  
-    preprocessed_captions = np.asarray(preprocessed_captions)
+    encoded_captions = np.asarray(encoded_captions)
 
-    return preprocessed_captions, vocabulary
+    return encoded_captions, vocabulary
 
 
 # Arguments
@@ -148,8 +136,8 @@ if __name__ == '__main__':
         image_captions = list(map(preprocess_caption, image_captions))
         captions.append(image_captions)
 
-    print('Preprocessing captions')
-    preprocessed_captions, vocabulary = preprocess_captions(captions)
+    print('Encoding captions ...')
+    encoded_captions, vocabulary = preprocess_captions(captions)
 
     print('Splitting data into train/val ...')
     train_indexes, val_indexes = train_test_split(
@@ -167,7 +155,7 @@ if __name__ == '__main__':
 
         dataset['image_names'] = [image_names[i] for i in indexes]
         dataset['captions'] = [captions[i] for i in indexes]
-        dataset['preprocessed_captions'] = preprocessed_captions[indexes]
+        dataset['encoded_captions'] = encoded_captions[indexes]
         dataset['vocabulary'] = vocabulary
 
         with open(pj(args.prepared_dataset_dir, 'flickr8k_{}.pkl'.format(name)), 'wb') as fout:
