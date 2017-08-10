@@ -37,22 +37,30 @@ class DataManager(object):
                 self.encoded_captions = self.encoded_captions[shuffled_indexes]
 
             for image, caption in zip(self.images, self.encoded_captions):
-                for i in range(len(caption) - 1):
-                    batch_images.append(image)
-                    batch_captions.append(caption[:i + 1])
+                # for i in range(len(caption) - 1):
+                #     batch_images.append(image)
+                #     batch_captions.append(caption[:i + 1])
+                #
+                #     next_word = np.zeros(len(self.vocabulary))
+                #     next_word[caption[i + 1]] = 1
+                #     batch_next_words.append(next_word)
+                batch_images.append(image)
 
-                    next_word = np.zeros(len(self.vocabulary))
-                    next_word[caption[i + 1]] = 1
-                    batch_next_words.append(next_word)
+                index = np.random.randint(0, len(caption) - 1)
+                batch_captions.append(caption[:index + 1])
 
-                    n_onjects_in_batch += 1
+                next_word = np.zeros(len(self.vocabulary))
+                next_word[caption[index + 1]] = 1
+                batch_next_words.append(next_word)
 
-                    if n_onjects_in_batch == batch_size:
-                        batch = self._prepare_batch(batch_images, batch_captions, batch_next_words)
-                        yield batch
+                n_onjects_in_batch += 1
 
-                        n_onjects_in_batch = 0
-                        batch_images, batch_captions, batch_next_words = [], [], []
+                if n_onjects_in_batch == batch_size:
+                    batch = self._prepare_batch(batch_images, batch_captions, batch_next_words)
+                    yield batch
+
+                    n_onjects_in_batch = 0
+                    batch_images, batch_captions, batch_next_words = [], [], []
 
     def _prepare_batch(self, images, captions, next_words):
         images = np.asanyarray(images)
