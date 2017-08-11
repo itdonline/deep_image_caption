@@ -22,7 +22,7 @@ parser.add_argument('--batch-size', type=int, default=32,
                     help='batch size')
 parser.add_argument('--epochs', type=int, default=99999,
                     help='number of training epochs')
-parser.add_argument('--embedding-dim', type=int, default=4096,
+parser.add_argument('--embedding-dim', type=int, default=128,
                     help='embedding dimension size')
 
 parser.add_argument('--checkpoint-period', type=int, default=1,
@@ -48,7 +48,7 @@ if __name__ == '__main__':
     callbacks = []
 
     model_checkpoint_callback = ModelCheckpoint(
-        pj(experiment.dirs['checkpoints'], 'checkpoint-{epoch:02d}-{val_loss:.2f}.hdf5'),
+        pj(experiment.dirs['checkpoints'], 'checkpoint-{epoch:02d}-loss[{val_loss:.2f}].hdf5'),
         verbose=1,
         period=args.checkpoint_period
     )
@@ -63,8 +63,8 @@ if __name__ == '__main__':
     # train
     caption_model.fit_generator(
         dm_train.flow(batch_size=args.batch_size, shuffle=True),
-        steps_per_epoch=dm_train.n_samples // args.batch_size // 10, epochs=args.epochs,
+        steps_per_epoch=dm_train.n_samples // args.batch_size, epochs=args.epochs,
         validation_data=dm_val.flow(batch_size=args.batch_size, shuffle=False),
-        validation_steps=dm_val.n_samples // args.batch_size // 10,
+        validation_steps=dm_val.n_samples // args.batch_size,
         callbacks=callbacks, verbose=1
     )

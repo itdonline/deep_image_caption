@@ -95,6 +95,8 @@ parser.add_argument('--val-ratio', default=0.05, type=float,
                     help='ratio of validation dataset. 0 if not splitting is not needed')
 parser.add_argument('--extract-image-features', default=1, type=int,
                     help='if 1 then extract images\' features')
+parser.add_argument('--n-objects-to-take', default=-1, type=int,
+                    help='number of objects to put in dataset. If -1, then all objects are taken')
 
 args = parser.parse_args()
 
@@ -104,6 +106,9 @@ if __name__ == '__main__':
 
     print('Loading images ...')
     image_paths = list_dir_with_full_paths(args.images_dir)
+    if args.n_objects_to_take != -1:
+        image_paths = image_paths[:args.n_objects_to_take]
+
     image_names = list(map(os.path.basename, image_paths))
 
     images = []
@@ -123,6 +128,9 @@ if __name__ == '__main__':
 
     print('Loading captions ...')
     captions_df = pd.read_table(args.captions_path, names=['image_name', 'caption'])
+    if args.n_objects_to_take != -1:
+        captions_df = captions_df[:args.n_objects_to_take]
+
     captions_df['image_name'] = captions_df['image_name'].apply(lambda x: x[:-2])
 
     # wipe out incorrect names

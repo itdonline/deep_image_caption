@@ -40,7 +40,7 @@ class DataManager(object):
                 # for i in range(len(caption) - 1):
                 #     batch_images.append(image)
                 #     batch_captions.append(caption[:i + 1])
-                #
+                
                 #     next_word = np.zeros(len(self.vocabulary))
                 #     next_word[caption[i + 1]] = 1
                 #     batch_next_words.append(next_word)
