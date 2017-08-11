@@ -1,15 +1,15 @@
 from keras.applications import ResNet50, VGG16
 from keras.applications.resnet50 import preprocess_input
-from keras.models import Sequential
+from keras.models import Sequential, Model
 from keras.layers import Flatten, Dense, RepeatVector, LSTM, Embedding, TimeDistributed, Merge
 
 
 def build_image_encoder(image_height, image_width, n_channels):
-    model = Sequential()
-    model.add(VGG16(include_top=True, weights='imagenet', input_shape=(image_height, image_width, n_channels)))
-    model.add(Flatten())
+    base_model = VGG16(weights='imagenet')
+    image_encoder = Model(inputs=base_model.input,
+                          outputs=base_model.get_layer('fc2').output)
 
-    return model
+    return image_encoder
 
 
 def build_caption_model(embedding_dim, caption_length, vocabulary_size,
@@ -18,8 +18,7 @@ def build_caption_model(embedding_dim, caption_length, vocabulary_size,
     image_encoder.trainable = False
 
     image_model = Sequential()
-    for layer in image_encoder.layers:
-        image_model.add(layer)
+    image_model.add(image_encoder)
     image_model.add(Dense(embedding_dim, activation='relu'))
     image_model.add(RepeatVector(caption_length))
 
