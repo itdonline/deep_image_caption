@@ -128,9 +128,6 @@ if __name__ == '__main__':
 
     print('Loading captions ...')
     captions_df = pd.read_table(args.captions_path, names=['image_name', 'caption'])
-    if args.n_objects_to_take != -1:
-        captions_df = captions_df[:args.n_objects_to_take]
-
     captions_df['image_name'] = captions_df['image_name'].apply(lambda x: x[:-2])
 
     # wipe out incorrect names
@@ -141,6 +138,9 @@ if __name__ == '__main__':
         image_captions = group['caption'].values
         image_captions = list(map(preprocess_caption, image_captions))
         captions.append(image_captions)
+
+    if args.n_objects_to_take != -1:
+        captions = captions[:args.n_objects_to_take]
 
     print('Encoding captions ...')
     encoded_captions, vocabulary = preprocess_captions(captions)
