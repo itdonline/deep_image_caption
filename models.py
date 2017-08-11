@@ -12,14 +12,18 @@ def build_image_encoder(image_height, image_width, n_channels):
     return image_encoder
 
 
-def build_caption_model(embedding_dim, caption_length, vocabulary_size,
+def build_caption_model(embedding_dim, caption_length, vocabulary_size, image_features_dim=-1,
                         image_height=224, image_width=224, n_channels=3):
-    image_encoder = build_image_encoder(image_height, image_width, n_channels)
-    image_encoder.trainable = False
-
     image_model = Sequential()
-    image_model.add(image_encoder)
-    image_model.add(Dense(embedding_dim, activation='relu'))
+
+    if image_features_dim == -1:  # images' features were not extracted before
+        image_encoder = build_image_encoder(image_height, image_width, n_channels)
+        image_encoder.trainable = False
+        image_model.add(image_encoder)
+        image_model.add(Dense(embedding_dim, activation='relu'))
+    else:
+        image_model.add(Dense(embedding_dim, input_dim=image_features_dim, activation='relu'))
+
     image_model.add(RepeatVector(caption_length))
 
     language_model = Sequential()

@@ -9,12 +9,15 @@ from keras.preprocessing.sequence import pad_sequences
 
 
 class DataManager(object):
-    def __init__(self, dataset_path, caption_length=None):
+    def __init__(self, dataset_path, caption_length=None, return_image_features=False):
         with open(dataset_path, 'rb') as fin:
             dataset = pickle.load(fin)
 
-        self.images = dataset['images']
-        self.image_height, self.image_width, self.n_channels = self.images.shape[1:]
+        if return_image_features:
+            self.images_or_image_features = dataset['image_features']
+        else:
+            self.images_or_image_features = dataset['images']
+            self.image_height, self.image_width, self.n_channels = self.images_or_image_features.shape[1:]
 
         self.encoded_captions = np.array([x[0] for x in dataset['encoded_captions']])  # TODO TRAIN ON ALL CAPTURES
         self.vocabulary = dataset['vocabulary']
@@ -32,11 +35,11 @@ class DataManager(object):
         batch_images, batch_captions, batch_next_words = [], [], []
         while True:
             if shuffle:
-                shuffled_indexes = np.random.permutation(np.arange(len(self.images)))
-                self.images = self.images[shuffled_indexes]
+                shuffled_indexes = np.random.permutation(np.arange(len(self.images_or_image_features)))
+                self.images_or_image_features = self.images_or_image_features[shuffled_indexes]
                 self.encoded_captions = self.encoded_captions[shuffled_indexes]
 
-            for image, caption in zip(self.images, self.encoded_captions):
+            for image, caption in zip(self.images_or_image_features, self.encoded_captions):
                 # for i in range(len(caption) - 1):
                 #     batch_images.append(image)
                 #     batch_captions.append(caption[:i + 1])
