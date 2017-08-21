@@ -3,7 +3,7 @@ from __future__ import print_function, division
 from os.path import join as pj
 import argparse
 
-from keras.callbacks import ModelCheckpoint, TensorBoard
+from keras.callbacks import ModelCheckpoint, EarlyStopping, TensorBoard
 
 # Local imports
 from experiments import Experiment
@@ -26,8 +26,9 @@ parser.add_argument('--embedding-dim', type=int, default=128,
                     help='embedding dimension size')
 parser.add_argument('--image-features-dim', type=int, default=-1,
                     help='dimension of image features. If -1 then training is performed on images')
-
 parser.add_argument('--checkpoint-period', type=int, default=1,
+                    help='dump-period of checkpoints')
+parser.add_argument('--early-stoppping-patience', type=int, default=10,
                     help='dump-period of checkpoints')
 
 args = parser.parse_args()
@@ -60,13 +61,21 @@ if __name__ == '__main__':
     callbacks = []
 
     model_checkpoint_callback = ModelCheckpoint(
-        pj(experiment.dirs['checkpoints'], 'checkpoint-{epoch:04d}-loss[{val_loss:.2f}].hdf5'),
+        pj(experiment.dirs['checkpoints'], 'checkpoint-{epoch:04d}.hdf5'),
         monitor='val_loss',
         save_best_only=True,
         period=args.checkpoint_period,
         verbose=1
     )
     callbacks.append(model_checkpoint_callback)
+
+    # EarlyStopping callback
+    early_stopping_callback = EarlyStopping(
+        monitor='val_loss',
+        patience=args.early_stoppping_patience,
+        mode='auto'
+    )
+    callbacks.append(early_stopping_callback) 
 
     tensorboard_callback = TensorBoard(
         log_dir=experiment.dirs['tensorboard'],
@@ -82,3 +91,5 @@ if __name__ == '__main__':
         validation_steps=dm_val.n_samples // args.batch_size,
         callbacks=callbacks, verbose=1
     )
+
+

@@ -42,7 +42,7 @@ def preprocess_caption(caption):
 
 
 def create_vocabulary(captions):
-    words = []
+    words = ['<p>']
     for caption in itertools.chain.from_iterable(captions):
         words.extend(caption.split())
 
@@ -62,7 +62,6 @@ def label_encode_caption(caption, vocabulary):
 
 def preprocess_captions(captions):
     vocabulary = create_vocabulary(captions)
-    vocabulary['<p>'] = -1  # padding symbol
 
     encoded_captions = []
     for image_captions in captions:

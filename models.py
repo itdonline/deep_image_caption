@@ -8,7 +8,7 @@ from keras.regularizers import l2
 
 
 def build_image_encoder(image_height, image_width, n_channels):
-    base_model = VGG16(weights='imagenet')
+    base_model = VGG16(weights='imagenet', include_top=True)
     image_encoder = Model(inputs=base_model.input,
                           outputs=base_model.get_layer('fc2').output)
 
@@ -19,7 +19,7 @@ def build_caption_model(embedding_dim, caption_length, vocabulary_size, image_fe
                         image_height=224, image_width=224, n_channels=3, regularizer=1e-8):
     # image model
     if image_features_dim == -1:  # images' features were not extracted before
-        image_input = Input(shape=(image_height, image_width, n_channels))
+        image_input = Input(shape=(image_height, image_width, n_channels), name='image')
 
         image_encoder = build_image_encoder(image_height, image_width, n_channels)
         image_encoder.trainable = False
@@ -27,14 +27,14 @@ def build_caption_model(embedding_dim, caption_length, vocabulary_size, image_fe
         image_x = image_encoder(image_input)
         image_x = Dense(embedding_dim, activation='relu')(image_x)
     else:
-        image_input = Input(shape=(image_features_dim,))
+        image_input = Input(shape=(image_features_dim,), name='image')
         image_x = Dense(embedding_dim, input_dim=image_features_dim, activation='relu')(image_input)
         
     image_x = RepeatVector(caption_length)(image_x)
     image_x = Dropout(0.5)(image_x)
 
     # text model
-    text_input = Input(shape=(caption_length,))
+    text_input = Input(shape=(caption_length,), name='text')
     text_x = Embedding(vocabulary_size, 256, input_length=caption_length)(text_input)
     text_x = GRU(
         256,
