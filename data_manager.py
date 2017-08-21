@@ -19,6 +19,8 @@ class DataManager(object):
             self.images_or_image_features = dataset['images']
             self.image_height, self.image_width, self.n_channels = self.images_or_image_features.shape[1:]
 
+        self.captions = dataset['captions']
+
         self.encoded_captions = np.array([x[0] for x in dataset['encoded_captions']])  # TODO TRAIN ON ALL CAPTURES
         self.vocabulary = dataset['vocabulary']
         self.inversed_vocabulary = dict((v, k) for k, v in self.vocabulary.items())
@@ -66,7 +68,7 @@ class DataManager(object):
                     batch_images, batch_captions, batch_next_words = [], [], []
 
     def _prepare_batch(self, images, captions, next_words):
-        images = np.asanyarray(images)
+        images = np.asarray(images)
         captions = pad_sequences(
             captions,
             maxlen=self.caption_length, padding='post',

@@ -54,14 +54,17 @@ if __name__ == '__main__':
         caption_model = build_caption_model(args.embedding_dim, dm_train.caption_length, len(dm_train.vocabulary),
                                             image_features_dim=args.image_features_dim)
 
+    print(caption_model.summary())
 
     # setup callbacks
     callbacks = []
 
     model_checkpoint_callback = ModelCheckpoint(
-        pj(experiment.dirs['checkpoints'], 'checkpoint-{epoch:02d}-loss[{val_loss:.2f}].hdf5'),
-        verbose=1,
-        period=args.checkpoint_period
+        pj(experiment.dirs['checkpoints'], 'checkpoint-{epoch:04d}-loss[{val_loss:.2f}].hdf5'),
+        monitor='val_loss',
+        save_best_only=True,
+        period=args.checkpoint_period,
+        verbose=1
     )
     callbacks.append(model_checkpoint_callback)
 

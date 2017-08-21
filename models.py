@@ -1,7 +1,10 @@
 from keras.applications import ResNet50, VGG16
 from keras.applications.resnet50 import preprocess_input
 from keras.models import Sequential, Model
-from keras.layers import Flatten, Dense, RepeatVector, LSTM, Embedding, TimeDistributed, Merge
+from keras.layers import (Flatten, Dense, RepeatVector, LSTM, GRU,
+                          Embedding, TimeDistributed, Merge, Dropout, Input)
+from keras.layers.merge import concatenate
+from keras.regularizers import l2
 
 
 def build_image_encoder(image_height, image_width, n_channels):
@@ -13,29 +16,43 @@ def build_image_encoder(image_height, image_width, n_channels):
 
 
 def build_caption_model(embedding_dim, caption_length, vocabulary_size, image_features_dim=-1,
-                        image_height=224, image_width=224, n_channels=3):
-    image_model = Sequential()
-
+                        image_height=224, image_width=224, n_channels=3, regularizer=1e-8):
+    # image model
     if image_features_dim == -1:  # images' features were not extracted before
+        image_input = Input(shape=(image_height, image_width, n_channels))
+
         image_encoder = build_image_encoder(image_height, image_width, n_channels)
         image_encoder.trainable = False
-        image_model.add(image_encoder)
-        image_model.add(Dense(embedding_dim, activation='relu'))
+
+        image_x = image_encoder(image_input)
+        image_x = Dense(embedding_dim, activation='relu')(image_x)
     else:
-        image_model.add(Dense(embedding_dim, input_dim=image_features_dim, activation='relu'))
+        image_input = Input(shape=(image_features_dim,))
+        image_x = Dense(embedding_dim, input_dim=image_features_dim, activation='relu')(image_input)
+        
+    image_x = RepeatVector(caption_length)(image_x)
+    image_x = Dropout(0.5)(image_x)
 
-    image_model.add(RepeatVector(caption_length))
+    # text model
+    text_input = Input(shape=(caption_length,))
+    text_x = Embedding(vocabulary_size, 256, input_length=caption_length)(text_input)
+    text_x = GRU(
+        256,
+        recurrent_regularizer=l2(regularizer),
+        kernel_regularizer=l2(regularizer),
+        bias_regularizer=l2(regularizer),
+        return_sequences=True
+    )(text_x)
+    text_x = TimeDistributed(Dense(embedding_dim))(text_x)
+    text_x = Dropout(0.5)(text_x)
 
-    language_model = Sequential()
-    language_model.add(Embedding(vocabulary_size, 256, input_length=caption_length))
-    language_model.add(LSTM(256,return_sequences=True))
-    language_model.add(TimeDistributed(Dense(embedding_dim)))
+    # caption model
+    caption_x = concatenate([image_x, text_x])
+    caption_x = Flatten()(caption_x)
+    caption_output = Dense(vocabulary_size, activation='softmax')(caption_x)
 
-    caption_model = Sequential()
-    caption_model.add(Merge([image_model, language_model], mode='concat'))
-    caption_model.add(LSTM(256, return_sequences=False))
-    caption_model.add(Dense(vocabulary_size, activation='softmax'))
-
+    caption_model = Model(inputs=[image_input, text_input],
+                          outputs=caption_output)
     caption_model.compile(loss='categorical_crossentropy', optimizer='rmsprop',
                           metrics=['accuracy'])
 
