@@ -4,4 +4,5 @@ python3 train.py --train-dataset-path=./data/flickr8k_train.pkl \
 				 --epochs=99999 \
 				 --embedding-dim=128 \
 				 --checkpoint-period=1 \
-				 --image-features-dim=4096
+				 --image-features-dim=4096 \
+                 --early-stopping-patience=20

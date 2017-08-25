@@ -28,7 +28,7 @@ parser.add_argument('--image-features-dim', type=int, default=-1,
                     help='dimension of image features. If -1 then training is performed on images')
 parser.add_argument('--checkpoint-period', type=int, default=1,
                     help='dump-period of checkpoints')
-parser.add_argument('--early-stoppping-patience', type=int, default=10,
+parser.add_argument('--early-stopping-patience', type=int, default=10,
                     help='dump-period of checkpoints')
 
 args = parser.parse_args()
@@ -72,14 +72,18 @@ if __name__ == '__main__':
     # EarlyStopping callback
     early_stopping_callback = EarlyStopping(
         monitor='val_loss',
-        patience=args.early_stoppping_patience,
+        patience=args.early_stopping_patience,
         mode='auto'
     )
     callbacks.append(early_stopping_callback) 
 
     tensorboard_callback = TensorBoard(
         log_dir=experiment.dirs['tensorboard'],
-        batch_size=1
+        batch_size=1,
+        write_graph=True,
+        write_grads=True,
+        write_images=True,
+        embeddings_freq=1
     )
     callbacks.append(tensorboard_callback)
 
