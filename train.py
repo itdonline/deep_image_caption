@@ -41,10 +41,8 @@ if __name__ == '__main__':
 
     # setup data managers
     return_image_features = args.image_features_dim != -1
-    dm_train = DataManager(args.train_dataset_path,
-                           return_image_features=return_image_features)
-    dm_val = DataManager(args.val_dataset_path, caption_length=dm_train.caption_length,
-                         return_image_features=return_image_features)
+    dm_train = DataManager(args.train_dataset_path)
+    dm_val = DataManager(args.val_dataset_path, caption_length=dm_train.caption_length)
 
     # setup model
     if args.image_features_dim == -1:  # train on images
@@ -89,9 +87,11 @@ if __name__ == '__main__':
 
     # train
     caption_model.fit_generator(
-        dm_train.flow(batch_size=args.batch_size, shuffle=True),
+        dm_train.flow(batch_size=args.batch_size, shuffle=True,
+                      return_image_features=return_image_features, multiple_captions_per_image=True),
         steps_per_epoch=dm_train.n_samples // args.batch_size, epochs=args.epochs,
-        validation_data=dm_val.flow(batch_size=args.batch_size, shuffle=False),
+        validation_data=dm_val.flow(batch_size=args.batch_size, shuffle=False,
+                                    return_image_features=return_image_features, multiple_captions_per_image=True),
         validation_steps=dm_val.n_samples // args.batch_size,
         callbacks=callbacks, verbose=1
     )
