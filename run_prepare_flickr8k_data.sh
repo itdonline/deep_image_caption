@@ -1,0 +1,9 @@
+python3 prepare_flickr8k_data.py --image-height=224 \
+                                 --image-width=224 \
+                                 --n-channels=3 \
+                                 --prepared-dataset-dir=./data \
+                                 --images-dir=./data/Flickr8k_Dataset/ \
+                                 --captions-path=./data/Flickr8k_text/Flickr8k.token.txt \
+                                 --val-ratio=0.05 \
+                                 --extract-image-features=1 \
+                                 --n-objects-to-take=-1

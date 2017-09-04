@@ -26,6 +26,8 @@ parser.add_argument('--embedding-dim', type=int, default=128,
                     help='embedding dimension size')
 parser.add_argument('--image-features-dim', type=int, default=-1,
                     help='dimension of image features. If -1 then training is performed on images')
+parser.add_argument('--multiple-captions-per-image', type=int, default=1,
+                    help='if 1 than target caption is chosen in random way, else if 0, than always the first is taken')
 parser.add_argument('--checkpoint-period', type=int, default=1,
                     help='dump-period of checkpoints')
 parser.add_argument('--early-stopping-patience', type=int, default=10,
@@ -88,10 +90,12 @@ if __name__ == '__main__':
     # train
     caption_model.fit_generator(
         dm_train.flow(batch_size=args.batch_size, shuffle=True,
-                      return_image_features=return_image_features, multiple_captions_per_image=True),
+                      return_image_features=return_image_features,
+                      multiple_captions_per_image=args.multiple_captions_per_image),
         steps_per_epoch=dm_train.n_samples // args.batch_size, epochs=args.epochs,
         validation_data=dm_val.flow(batch_size=args.batch_size, shuffle=False,
-                                    return_image_features=return_image_features, multiple_captions_per_image=True),
+                                    return_image_features=return_image_features,
+                                    multiple_captions_per_image=args.multiple_captions_per_image),
         validation_steps=dm_val.n_samples // args.batch_size,
         callbacks=callbacks, verbose=1
     )

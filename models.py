@@ -4,6 +4,7 @@ from keras.models import Sequential, Model
 from keras.layers import (Flatten, Dense, RepeatVector, LSTM, GRU,
                           Embedding, TimeDistributed, Merge, Dropout,
                           Input, Masking)
+from keras.layers.wrappers import Bidirectional
 from keras.layers.merge import concatenate
 from keras.regularizers import l2
 from keras import optimizers
@@ -20,7 +21,6 @@ def build_image_encoder(image_height, image_width, n_channels):
                           outputs=image_encoder_output)
 
     return image_encoder
-
 
 
 def build_caption_model(embedding_dim, caption_length, vocabulary_size, image_features_dim=-1,
@@ -52,27 +52,11 @@ def build_caption_model(embedding_dim, caption_length, vocabulary_size, image_fe
         bias_regularizer=l2(regularizer),
         return_sequences=True
     )(text_x)
-    # text_x = LSTM(
-    #     512,
-    #     dropout=0.2, recurrent_dropout=0.2,
-    #     recurrent_regularizer=l2(regularizer),
-    #     kernel_regularizer=l2(regularizer),
-    #     bias_regularizer=l2(regularizer),
-    #     return_sequences=True
-    # )(text_x)
     text_x = TimeDistributed(Dense(embedding_dim))(text_x)
     text_x = Dropout(0.5)(text_x)
 
     # caption model
     caption_x = concatenate([image_x, text_x])
-    # caption_x = LSTM(
-    #     512,
-    #     dropout=0.2, recurrent_dropout=0.2,
-    #     recurrent_regularizer=l2(regularizer),
-    #     kernel_regularizer=l2(regularizer),
-    #     bias_regularizer=l2(regularizer),
-    #     return_sequences=True
-    # )(caption_x)
     caption_x = LSTM(
         512,
         dropout=0.2, recurrent_dropout=0.2,

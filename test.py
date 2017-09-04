@@ -51,7 +51,8 @@ if __name__ == '__main__':
         model_paths = list(iglob('./experiments/**/*.hdf5', recursive=True))
         model_paths = sorted(model_paths, key=lambda x: os.path.getctime(x))
         model_path = model_paths[-1]  # getting most fresh weights
-    # model_path = './experiments/2017-08-25-17:03:54/checkpoints/checkpoint-0121.hdf5'
+    else:
+        model_path = args.model_path
     print('Model path: {}'.format(model_path))
 
     # load image encoder and caption generator
